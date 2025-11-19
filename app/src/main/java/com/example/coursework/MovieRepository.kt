@@ -1,30 +1,39 @@
 package com.example.coursework
 
-import android.app.Application
-import androidx.lifecycle.LiveData
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-class MovieRepository(application: Application) {
-
-    private val movieDao: MovieDao =
-        MovieDatabase.getDatabase(application).movieDao()
-
-    val allMovies: LiveData<List<Movie>> = movieDao.getAllMovies()
-
-    suspend fun insertMovie(movie: Movie) {
-        withContext(Dispatchers.IO) {
-            movieDao.insert(movie)
-        }
+class MovieRepository @Inject constructor(
+    private val movieDao: MovieDao,
+    private val apiService: MovieApiService
+) {
+    val allMovies: Flow<List<Movie>> = movieDao.getAllMovies().map { entities ->
+        entities.map { it.toDomain() }
     }
 
-    suspend fun deleteMovie(movie: Movie) {
-        withContext(Dispatchers.IO) {
-            movieDao.delete(movie)
+    suspend fun searchMovies(query: String): Result<List<Movie>> {
+        return try {
+            val response = apiService.searchMovies(
+                apiKey = BuildConfig.OMDB_API_KEY,
+                searchQuery = query
+            )
+
+            if (response.response == "True") {
+                Result.success(response.search.map { it.toDomain() })
+            } else {
+                Result.success(emptyList())
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
         }
     }
+    suspend fun saveMovie(movie: Movie) {
+        movieDao.insert(movie.toEntity())
+    }
 
-    fun getMovieById(movieId: String): LiveData<Movie> {
-        return movieDao.getMovieById(movieId)
+    suspend fun deleteMovie(movieId: String) {
+        movieDao.deleteById(movieId)
     }
 }

@@ -1,77 +1,57 @@
 package com.example.coursework
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import javax.inject.Inject
 
-class SearchViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val repository: MovieRepository
+) : ViewModel() {
+    private val _searchResults = MutableStateFlow<List<Movie>>(emptyList())
+    val searchResults: StateFlow<List<Movie>> = _searchResults.asStateFlow()
 
-    private val repository = MovieRepository(application)
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _searchResults = MutableLiveData<List<Movie>>()
-    val searchResults: LiveData<List<Movie>> = _searchResults
-
-    private val _isLoading = MutableLiveData<Boolean>()
-    val isLoading: LiveData<Boolean> = _isLoading
-
-    private val _errorMessage = MutableLiveData<String>()
-    val errorMessage: LiveData<String> = _errorMessage
-
-    private val API_KEY = "ab42f2f9"
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message.asStateFlow()
 
     fun searchMovies(query: String) {
-        if (query.isEmpty()) {
-            _errorMessage.value = "Введите название фильма"
-            return
-        }
+        if (query.isBlank()) return
 
-        _isLoading.value = true
+        viewModelScope.launch {
+            _isLoading.value = true
+            _message.value = null
 
-        val call = RetrofitClient.apiService.searchMovies(
-            apiKey = API_KEY,
-            searchQuery = query
-        )
-
-        call.enqueue(object : Callback<MovieSearchResponse> {
-            override fun onResponse(
-                call: Call<MovieSearchResponse>,
-                response: Response<MovieSearchResponse>
-            ) {
-                _isLoading.value = false
-
-                if (response.isSuccessful) {
-                    val movies = response.body()?.search ?: emptyList()
+            repository.searchMovies(query)
+                .onSuccess { movies ->
                     _searchResults.value = movies
-
-                    if (movies.isEmpty()) {
-                        _errorMessage.value = "Фильмы не найдены"
-                    }
-                } else {
-                    _errorMessage.value = "Ошибка при поиске"
+                    if (movies.isEmpty()) _message.value = "No results found"
                 }
-            }
+                .onFailure { e ->
+                    _message.value = e.localizedMessage ?: "Error"
+                }
 
-            override fun onFailure(
-                call: Call<MovieSearchResponse>,
-                t: Throwable
-            ) {
-                _isLoading.value = false
-                _errorMessage.value = "Ошибка сети: ${t.message}"
-            }
-        })
+            _isLoading.value = false
+        }
     }
 
     fun saveMovie(movie: Movie) {
-        GlobalScope.launch(Dispatchers.Main) {
-            repository.insertMovie(movie)
-            _errorMessage.value = "Фильм сохранен!"
+        viewModelScope.launch {
+            repository.saveMovie(movie)
+            _message.value = "Saved!"
         }
+    }
+
+    private fun saveMovie(movie: Any) {}
+
+    fun clearMessage() {
+        _message.value = null
     }
 }

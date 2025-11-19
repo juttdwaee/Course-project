@@ -1,3 +1,17 @@
 <resources>
-    <string name="app_name">Coursework</string>
+    <string name="app_name">MovieSearch</string>
+    <string name="search_title">Поиск фильмов</string>
+    <string name="search_hint">Название фильма</string>
+    <string name="btn_search">Искать</string>
+    <string name="btn_my_movies">Мои фильмы</string>
+    <string name="saved_title">Сохраненные фильмы</string>
+    <string name="no_saved_movies">Нет сохраненных фильмов</string>
+    <string name="btn_back">Вернуться к поиску</string>
+    <string name="btn_save">Сохранить</string>
+    <string name="btn_delete">Удалить</string>
+    <string name="year_format">Год: %s</string>
+    <string name="error_empty_query">Введите название фильма</string>
+    <string name="error_no_results">Фильмы не найдены</string>
+    <string name="error_search">Ошибка при поиске</string>
+    <string name="saved_success">Фильм сохранен!</string>
 </resources>

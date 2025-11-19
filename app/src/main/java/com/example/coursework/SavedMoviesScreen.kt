@@ -6,98 +6,43 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun SavedMoviesScreen(
-    viewModel: SavedMoviesViewModel = viewModel(),
-    onNavigateBack: () -> Unit = {}
+    viewModel: SavedMoviesViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit
 ) {
-    val movies by viewModel.allMovies.observeAsState(emptyList())
+    val movies by viewModel.savedMovies.collectAsStateWithLifecycle()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
-            text = "Сохраненные фильмы",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
+            text = stringResource(R.string.saved_title),
+            style = MaterialTheme.typography.headlineMedium
         )
 
         Button(
-            onClick = { onNavigateBack() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
+            onClick = onNavigateBack,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
         ) {
-            Text("Вернуться к поиску")
+            Text(stringResource(R.string.btn_back))
         }
 
         if (movies.isEmpty()) {
-            Text(
-                text = "Нет сохраненных фильмов",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(16.dp)
-            )
+            Text(stringResource(R.string.no_saved_movies))
         } else {
             LazyColumn {
                 items(movies) { movie ->
-                    SavedMovieItem(
+                    MovieItem(
                         movie = movie,
-                        onDelete = { viewModel.deleteMovie(movie) }
+                        onAction = { viewModel.deleteMovie(movie) },
+                        isDelete = true
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun SavedMovieItem(
-    movie: Movie,
-    onDelete: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = movie.title,
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(
-                text = "Год: ${movie.year} | Тип: ${movie.type}",
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            if (movie.plot.isNotEmpty()) {
-                Text(
-                    text = "Описание: ${movie.plot}",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            Button(
-                onClick = { onDelete() },
-                modifier = Modifier
-                    .align(androidx.compose.ui.Alignment.End)
-                    .padding(top = 8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("Удалить")
             }
         }
     }
